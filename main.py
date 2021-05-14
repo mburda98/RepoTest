@@ -25,6 +25,30 @@ def fetch_quotes(number):
     return quotes
 
 
+def analyse_quotes(quotes):
+    analyzed_quotes = []
+    for quote in quotes:
+        try:
+            res = requests.post(sentimUrl, headers=headersSentim, json={"text": quote}).json()
+            if not res["result"] or not res["sentences"]:
+                return 0
+        except:
+            print("Server could not analyse quote")
+            return 0
+        analyzed_quotes.append({"quote": quote, "result": res["result"]})
+    return analyzed_quotes
+
+
+def find_extreme_quote(quotes):
+    extreme = ""
+    extreme_val = -1
+    for quote in quotes:
+        if abs(quote["result"]["polarity"]) > extreme_val:
+            extreme = quote["quote"]
+            extreme_val = quote["result"]["polarity"]
+    return {"quote": extreme, "value": extreme_val}
+
+
 @app.get("/")
 def root():
     return {"message": "Hello World"}
@@ -35,4 +59,8 @@ def test():
     quotes = fetch_quotes(5)
     if quotes == 0:
         return {"Error": "Server could not get Kanye quote"}
-    return {"quotes": quotes}
+    analyzed = analyse_quotes(quotes)
+    if analyzed == 0:
+        return {"Error": "Server could not analyse quotes"}
+    extreme_quote = find_extreme_quote(analyzed)
+    return {"quotes": analyzed, "extreme": extreme_quote}
