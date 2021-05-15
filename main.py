@@ -1,5 +1,6 @@
 import requests
 from fastapi import FastAPI
+from fastapi.templating import Jinja2Templates
 
 kanyeUrl = "https://api.kanye.rest/"
 
@@ -54,9 +55,11 @@ def root():
     return {"message": "Hello World"}
 
 
-@app.get("/post")
-def test():
-    quotes = fetch_quotes(5)
+@app.get("/post/{number}")
+async def test(number: int):
+    if number < 5 or number > 20:
+        return {"Error": "Inserted number must be between 5 and 20"}
+    quotes = fetch_quotes(number)
     if quotes == 0:
         return {"Error": "Server could not get Kanye quote"}
     analyzed = analyse_quotes(quotes)
