@@ -32,9 +32,8 @@
                 response.json().then(function(data) {
                     let quotes = document.getElementById('quotes');
                     data.quotes.forEach((x) => {
-                        console.log(x);
                         let quote = document.createElement('li')
-                        let content = document.createTextNode(x.quote + " - Polarity: " + x.result.polarity)
+                        let content = document.createTextNode(x.quote + " - Polarity: " + x.result)
                         quote.appendChild(content)
                         quotes.appendChild(quote)
                     });
