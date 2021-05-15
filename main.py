@@ -1,5 +1,9 @@
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 kanyeUrl = "https://api.kanye.rest/"
 
@@ -8,7 +12,11 @@ headersSentim = {"Accept": "application/json", "Content-Type": "application/json
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="client"), name="client")
+templates = Jinja2Templates(directory="client")
 
+
+# Function to fetch quotes from kanye.rest API
 def fetch_quotes(number):
     quotes = []
     while len(quotes) != number:
@@ -25,6 +33,7 @@ def fetch_quotes(number):
     return quotes
 
 
+# Function to send quotes through sentim API and make custom array quotes
 def analyse_quotes(quotes):
     analyzed_quotes = []
     for quote in quotes:
@@ -39,28 +48,37 @@ def analyse_quotes(quotes):
     return analyzed_quotes
 
 
+# Function to find the most positive or negative quote
 def find_extreme_quote(quotes):
     extreme = ""
-    extreme_val = -1
+    extreme_val = 0
     for quote in quotes:
-        if abs(quote["result"]["polarity"]) > extreme_val:
+        if abs(quote["result"]["polarity"]) >= abs(extreme_val):
             extreme = quote["quote"]
             extreme_val = quote["result"]["polarity"]
     return {"quote": extreme, "value": extreme_val}
 
 
-@app.get("/")
-def root():
-    return {"message": "Hello World"}
+# Home page
+@app.get("/", response_class=HTMLResponse)
+def root(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
 
-@app.get("/post")
-def test():
-    quotes = fetch_quotes(5)
+# Route to fetch set of random quotes
+@app.get("/post/{number}")
+async def test(number: str):
+    try:
+        number = int(number)
+    except:
+        raise HTTPException(status_code=404, detail="It's not a number")
+    if number < 5 or number > 20:
+        raise HTTPException(status_code=404, detail="Inserted number must be between 5 and 20")
+    quotes = fetch_quotes(number)
     if quotes == 0:
-        return {"Error": "Server could not get Kanye quote"}
+        raise HTTPException(status_code=500, detail="Server could not get Kanye quote")
     analyzed = analyse_quotes(quotes)
     if analyzed == 0:
-        return {"Error": "Server could not analyse quotes"}
+        raise HTTPException(status_code=500, detail="Server could not analyse quotes")
     extreme_quote = find_extreme_quote(analyzed)
     return {"quotes": analyzed, "extreme": extreme_quote}

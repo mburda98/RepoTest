@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kanye app</title>
+</head>
+<body>
+<h1>Kanye West quotes</h1>
+<h2>Provide number of quotes</h2>
+<form action="">
+    <input type="text" id="number_quotes" autocomplete="off"/>
+    <button id="button" onclick="getData(event)">Get quotes!</button>
+</form>
+<ul id='quotes'>
+</ul>
+<a id="extreme"></a>
+<script>function getData(event) {
+    var input = document.getElementById("number_quotes");
+    var button = document.getElementById("button");
+    if (input.value == '') {
+        document.getElementById('extreme').innerHTML = "It's not a number";
+    } else {
+        button.disabled = true;
+        button.innerHTML = "Submitting...";
+        document.getElementById('quotes').innerHTML = "";
+        document.getElementById('extreme').innerHTML = "";
+        fetch(`/post/${input.value}`).then(function(response) {
+            if (response.status != 200) {
+                response.json().then(function(data) {
+                    document.getElementById('extreme').innerHTML = data.detail;
+                });
+            } else {
+                response.json().then(function(data) {
+                    let quotes = document.getElementById('quotes');
+                    data.quotes.forEach((x) => {
+                        console.log(x);
+                        let quote = document.createElement('li')
+                        let content = document.createTextNode(x.quote + " - Polarity: " + x.result.polarity)
+                        quote.appendChild(content)
+                        quotes.appendChild(quote)
+                    });
+                    document.getElementById('extreme').innerHTML = "Extreme quote: " + data.extreme.quote + " - Polarity: " + data.extreme.value;
+                });
+            }
+            button.disabled = false;
+            button.innerHTML = "Get quotes!";
+        });
+    }
+    input.value = ''
+    event.preventDefault()
+}
+</script>
+</body>
+</html>
