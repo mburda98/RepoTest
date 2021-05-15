@@ -1,4 +1,5 @@
 import requests
+import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 
@@ -35,16 +36,24 @@ def fetch_quotes(number):
 
 # Function to send quotes through sentim API and make custom array quotes
 def analyse_quotes(quotes):
-    analyzed_quotes = []
+    merged = ""
+    # Merging all quotes into one paragraph to avoid multiple requests to sentim API
     for quote in quotes:
-        try:
-            res = requests.post(sentimUrl, headers=headersSentim, json={"text": quote}).json()
-            if not res["result"] or not res["sentences"]:
-                return 0
-        except:
-            print("Server could not analyse quote")
+        if quote.endswith("."):
+            merged += quote + " "
+        else:
+            merged += quote + ". "
+    analyzed_quotes = []
+    try:
+        res = requests.post(sentimUrl, headers=headersSentim, json={"text": merged}).json()
+        if not res["result"] or not res["sentences"]:
             return 0
-        analyzed_quotes.append({"quote": quote, "result": res["result"]})
+    except:
+        print("Server could not analyse quote")
+        return 0
+    # Splitting response into single quotes with results
+    for sentence in res["sentences"]:
+        analyzed_quotes.append({"quote": sentence["sentence"], "result": sentence["sentiment"]["polarity"]})
     return analyzed_quotes
 
 
@@ -53,9 +62,9 @@ def find_extreme_quote(quotes):
     extreme = ""
     extreme_val = 0
     for quote in quotes:
-        if abs(quote["result"]["polarity"]) >= abs(extreme_val):
+        if abs(quote["result"]) >= abs(extreme_val):
             extreme = quote["quote"]
-            extreme_val = quote["result"]["polarity"]
+            extreme_val = quote["result"]
     return {"quote": extreme, "value": extreme_val}
 
 
@@ -82,3 +91,6 @@ async def test(number: str):
         raise HTTPException(status_code=500, detail="Server could not analyse quotes")
     extreme_quote = find_extreme_quote(analyzed)
     return {"quotes": analyzed, "extreme": extreme_quote}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
