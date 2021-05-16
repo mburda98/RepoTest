@@ -102,4 +102,3 @@ async def test(number: str):
         raise HTTPException(status_code=500, detail="Server could not analyse quotes")
     extreme_quote = find_extreme_quote(analyzed)
     return {"quotes": analyzed, "extreme": extreme_quote}
-
