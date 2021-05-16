@@ -1,7 +1,7 @@
 import requests
-import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
+import re
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -37,6 +37,10 @@ def fetch_quotes(number):
 # Function to send quotes through sentim API and make custom array quotes
 def analyse_quotes(quotes):
     merged = ""
+    # Remember how many sentences was in every quote
+    nr_sentences = []
+    for i in range(0, len(quotes)):
+        nr_sentences.append(len(re.split(r"(?<=[^A-Z].[.?]) +(?=[A-Z])", quotes[i])))
     # Merging all quotes into one paragraph to avoid multiple requests to sentim API
     for quote in quotes:
         if quote.endswith("."):
@@ -51,9 +55,16 @@ def analyse_quotes(quotes):
     except:
         print("Server could not analyse quote")
         return 0
-    # Splitting response into single quotes with results
-    for sentence in res["sentences"]:
-        analyzed_quotes.append({"quote": sentence["sentence"], "result": sentence["sentiment"]["polarity"]})
+    # Splitting response into single quotes and calculating average polarity for each quote
+    current = 0
+    for nr in nr_sentences:
+        merged_quote = ""
+        sum_polarity = 0
+        for i in range(current, current + nr):
+            merged_quote += " " + res["sentences"][i]["sentence"]
+            sum_polarity += res["sentences"][i]["sentiment"]["polarity"]
+        analyzed_quotes.append({"quote": merged_quote, "result": round(sum_polarity/nr, 2)})
+        current += nr
     return analyzed_quotes
 
 
